@@ -32,14 +32,13 @@ in_dir="/media/plaiseek/2To Storage/Films"
 out_dir="/media/plaiseek/2To Storage/Films x264"
 out_extension=".mkv"
 
-
 if not os.path.exists(out_dir):
     try: os.mkdir(out_dir)
     except OSError: print("Creation of the directory {} failed".format(out_dir))
     else: print("Successfully created the directory {}".format(out_dir))
 
 print("Listing non h264 files in \"{}\"".format(in_dir))
-filenames = list_non_h264(in_dir)
+filenames = ffprobe_utils.list_non_h264(in_dir)
 nb_files = len(filenames)
 print("{} files found".format(nb_files))
 
@@ -48,20 +47,14 @@ print("Transcoding ...")
 for i, filename in enumerate(filenames):
     in_file = in_dir + "/" + filename
     out_file = out_dir + "/" + os.path.splitext(filename)[0] + out_extension
-
     print("({}/{}) \"{}\"".format(i+1, nb_files, out_file))
-
     if os.path.exists(out_file): continue
-
     cmd=["HandBrakeCLI", "--preset-import-file", preset_file, "-a", "1,2,3", "-s", "1,2,3,4,5,6", "-i", in_file, "-o", out_file]
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8", universal_newlines=True)
-    
     for stdout_line in iter(p.stdout.readline, ""):
         print_progress_bar(stdout_line)
     print_progress_bar("")
-
     p.wait(7200)
-
     if p.returncode != 0:
         raise subprocess.CalledProcessError(p.returncode, p.args)
     
