@@ -4,7 +4,7 @@ import sys
 import time
 
 def list_non_h264(dir, extensions=[".mkv", ".avi", ".mp4", ".m4v"]):
-    file_paths = []
+    filenames = []
     for filename in os.listdir(dir):
         if os.path.splitext(filename)[1] not in extensions: continue
         file_path = dir + "/" + filename
@@ -14,22 +14,16 @@ def list_non_h264(dir, extensions=[".mkv", ".avi", ".mp4", ".m4v"]):
         if p.returncode != 0:
             raise subprocess.CalledProcessError(p.returncode, p.args)
         codecs = stdout.decode("utf-8").split("\n")
-        if "h264" in codecs: continue            
-        file_paths.append(filename)
-    # for file_path in file_paths:
-    #     print(file_path)
-    # print(len(file_paths))
-    return file_paths
+        if "h264" in codecs: continue        
+        filenames.append(filename)
+    return filenames
 
-progress_bar_width = 0
+progress_len = 0
 def print_progress_bar(line):
-    global progress_bar_width
+    global progress_len
     line = line.split('\n')[0]
-    sys.stdout.write("\b" * progress_bar_width)
-    sys.stdout.write(" " * progress_bar_width)
-    sys.stdout.write("\b" * progress_bar_width)
-    sys.stdout.write(line)
-    progress_bar_width = len(line)
+    sys.stdout.write("\b" * progress_len + " " * progress_len + "\b" * progress_len + line)
+    progress_len = len(line)
     sys.stdout.flush()
 
 
@@ -60,21 +54,17 @@ for i, filename in enumerate(filenames):
     if os.path.exists(out_file): continue
 
     cmd=["HandBrakeCLI", "--preset-import-file", preset_file, "-a", "1,2,3", "-s", "1,2,3,4,5,6", "-i", in_file, "-o", out_file]
-    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8", universal_newlines=True)
     
     for stdout_line in iter(p.stdout.readline, ""):
         print_progress_bar(stdout_line)
     print_progress_bar("")
 
-    stdout, stderr = p.communicate()
+    p.wait(7200)
 
     if p.returncode != 0:
-        with open("log_stdout", "w") as log_out:
-            log_out.write(stdout)
-        with open("log_stderr", "w") as log_err:
-            log_err.write(stderr)
         raise subprocess.CalledProcessError(p.returncode, p.args)
-
+    
 end_time = time.time()
 hours, rem = divmod(end_time-start_time, 3600)
 minutes, seconds = divmod(rem, 60)
